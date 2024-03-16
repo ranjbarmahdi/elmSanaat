@@ -170,13 +170,17 @@ async function scrapSingleProduct(page, productURL, imagesDIR, documentsDir, row
           const $ = await cheerio.load(html);
      
           const data = {};
-          data["title"] = $('h1').length ? $('h1').text()?.replace('خرید', '').trim() : "";
-          data["category"] = $('notFound').length
-               ? $('notFound')
-                    .map((i, a) => $(a).text().trim()).get().join(" > ")
+          data["title"] = $('h1').length ? $('h1').text()?.replace('خرید', '')?.replace('قیمت', '').trim() : "";
+          data["category"] = $('.posted_in').length
+               ? $('.posted_in')
+                    .map((i, a) => $(a).text()?.replace('دسته:', '')?.trim()).get().join(" > ")
                : "";
           
-          data["brand"] = brands.find(brand => data["title"].includes(brand)) || 'متفرقه'
+          data["brand"] = brands.find(brand => data["title"].includes(brand)) || ''
+          if (!data['brand']) {
+               data['brand'] = brands.find(brand => data["category"].includes(brand)) || 'دیگر'
+          }
+
           data['unitOfMeasurement'] = 'عدد'
           data["price"] = "";
           data["xpath"] = "";
@@ -194,7 +198,10 @@ async function scrapSingleProduct(page, productURL, imagesDIR, documentsDir, row
      
           // specification, specificationString
           let specification = {};
-          const rowElements = $('.NEW-TABLE tr:gt(0)')
+          const rowElements =  $('tr').filter(function() {
+               return $(this).find('td').length === 2;
+          });
+
           for (let i = 0; i < rowElements.length; i++) {
                const row = rowElements[i];
      
@@ -289,7 +296,7 @@ async function main() {
      let browser;
      let page;
      try {
-          const DATA_DIR = path.normalize(__dirname + "/damaTajhiz");
+          const DATA_DIR = path.normalize(__dirname + "/elmSanat");
           const IMAGES_DIR = path.normalize(DATA_DIR + "/images");
           const DOCUMENTS_DIR = path.normalize(DATA_DIR + "/documents");
 
@@ -319,7 +326,6 @@ async function main() {
 
          
           urlRow = await removeUrl();
-       
           if (urlRow?.url) {
                const productInfo = await scrapSingleProduct(page, urlRow.url, IMAGES_DIR, DOCUMENTS_DIR);
                const insertQueryInput = [
